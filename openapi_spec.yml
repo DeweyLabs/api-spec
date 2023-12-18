@@ -1,0 +1,339 @@
+openapi: 3.1.0
+info:
+  description: Customer only API
+  title: Dewey API
+  version: 0.0.1
+  license:
+    name: All Rights Reserved
+    url: https://www.askdewey.co
+servers:
+  - url: "https://app.askdewey.co/api/v1"
+    description: Base API URL
+paths:
+  /conversations:
+    post:
+      operationId: createConversation
+      summary: Create a new conversation with messages
+      description: Create a new conversation with messages. The response messages object will only include the most recently created assisant message.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConversationRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationObject"
+        "400":
+          description: Bad Request
+
+  /conversations/{conversationID}:
+    get:
+      operationId: getConversation
+      summary: Retrieve a specific conversation by ID
+      description: Retrieve a specific conversation by ID. The response messages object will include all messages created for this conversation.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: conversationID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationObject"
+        "404":
+          description: Not Found
+
+    post:
+      operationId: addMessage
+      summary: Add message to an existing conversation
+      description: Add a message to an existing conversation. The response messages object will only include the most recently created assistant message.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: conversationID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConversationRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationObject"
+        "400":
+          description: Bad Request
+
+  /users/{userID}:
+    get:
+      operationId: getUser
+      summary: WIP Retrieve a user by ID
+      description: Retrieve a user by their existing ID
+      tags:
+        - WIP
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserObject"
+        "404":
+          description: Not Found
+
+  /users/{userID}/conversations:
+    get:
+      operationId: getUserconversations
+      summary: Retrieve all conversations for a specific user
+      description: Retrieve all conversations for a specific user
+      tags:
+        - WIP
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConversationObject"
+        "404":
+          description: Not Found
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    CreateConversationRequest:
+      type: object
+      required:
+        - messages
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateMessageRequest"
+      example:
+        messages:
+          - content: "What is the best way to get rid of a cold?"
+
+    ConversationObject:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageObject"
+      example:
+        created_at: 1702494381
+        role: assistant
+        content:
+          - type: text
+            text:
+              value: "Honeyed tea of course"
+              annotations:
+                - type: citation
+                  rank: 1
+                  text: "The brilliant cure-all, Honeyed tea"
+                  href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
+
+    UserObject:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        context:
+          type: object
+          additionalProperties: true
+
+    CreateMessageRequest:
+      type: object
+      properties:
+        content:
+          type: array
+          required:
+            - text
+          properties:
+            text:
+              type: object
+              properties:
+                value:
+                  type: string
+
+    MessageObject:
+      type: object
+      properties:
+        created_at:
+          type: integer
+        conversation_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+        content:
+          description: The content of the message in array of text with annotations
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageContentTextObject"
+      example:
+        created_at: 1702494381
+        role: assistant
+        content:
+          - type: text
+            text:
+              value: "Honeyed tea of course"
+              annotations:
+                - type: citation
+                  rank: 1
+                  text: "The brilliant cure-all, Honeyed tea"
+                  href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
+
+    MessageContentTextObject:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: ["text"]
+        text:
+          type: object
+          properties:
+            value:
+              description: The text value of the message
+              type: string
+            annotations:
+              type: array
+              items:
+                oneOf:
+                  - $ref: "#/components/schemas/MessageContentTextAnnotationsCitationObject"
+                  - $ref: "#/components/schemas/MessageContentTextAnnotationSuggestionObject"
+          required:
+            - value
+            - annotations
+
+    MessageContentTextAnnotationsCitationObject:
+      type: object
+      description: A citation or reference for the message
+      properties:
+        type:
+          type: string
+          enum: ["citation"]
+        rank:
+          type: integer
+        text:
+          type: string
+        href:
+          type: string
+      required:
+        - type
+        - text
+        - href
+
+    MessageContentTextAnnotationSuggestionObject:
+      type: object
+      description: A suggestion source for the message
+      properties:
+        type:
+          type: string
+          enum: ["suggestion"]
+        rank:
+          type: integer
+        text:
+          type: string
+        href:
+          type: string
+      required:
+        - type
+        - text
+        - href
+
+  # examples:
+  #   conversationResponseExample:
+  #     summary: Example conversation response
+  #     value:
+  #       id: 123e4567-e89b-12d3-a456-426614174000
+  #       messages:
+  #         - created_at: 1702494381
+  #           role: assistant
+  #           content:
+  #             - type: text
+  #               text:
+  #                 value: "Honeyed tea of course"
+  #                 annotations:
+  #                   - type: citation
+  #                     rank: 1
+  #                     text: "The brilliant cure-all, Honeyed tea"
+  #                     href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
+
+  #   assistantAnswerMessageExample:
+  #     summary: Assistant answer message with citation
+  #     value:
+  #       created_at: 1702494381
+  #       role: assistant
+  #       content:
+  #         - type: text
+  #           text:
+  #             value: "Honeyed tea of course"
+  #             annotations:
+  #               - type: citation
+  #                 rank: 1
+  #                 text: "The brilliant cure-all, Honeyed tea"
+  #                 href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
+
+  #   assistantSuggestionMessageExample:
+  #     summary: Assistant answer message with suggestion
+  #     value:
+  #       created_at: 1702494381
+  #       role: assistant
+  #       content:
+  #         - type: text
+  #           text:
+  #             value: "This is such an important question and I want to make sure you get the resources you need."
+  #             annotations:
+  #               - type: suggestion
+  #                 rank: 1
+  #                 text: "What are common over-the-counter treatments for cold symptoms?"
