@@ -10,7 +10,7 @@ servers:
   - url: "https://app.askdewey.co/api/v1"
     description: Base API URL
 paths:
-  /conversations:
+  /api/v1/conversations:
     post:
       operationId: createConversation
       summary: Create a new conversation with messages
@@ -33,7 +33,7 @@ paths:
         "400":
           description: Bad Request
 
-  /conversations/{conversationID}:
+  /api/v1/conversations/{conversationID}:
     get:
       operationId: getConversation
       summary: Retrieve a specific conversation by ID
@@ -54,6 +54,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ConversationObject"
+              examples:
+                example1:
+                  value:
+                    id: 123e4567-e89b-12d3-a456-426614174000
+                    messages:
+                      - created_at: 1702494381
+                        role: assistant
+                        content:
+                          - type: text
+                            text:
+                              value: "Honeyed tea of course"
+                              annotations:
+                                - type: citation
+                                  rank: 1
+                                  text: "The brilliant cure-all, Honeyed tea"
+                                  href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
+
         "404":
           description: Not Found
 
@@ -86,7 +103,7 @@ paths:
         "400":
           description: Bad Request
 
-  /users/{userID}:
+  /api/v1/users/{userID}:
     get:
       operationId: getUser
       summary: WIP Retrieve a user by ID
@@ -111,7 +128,7 @@ paths:
         "404":
           description: Not Found
 
-  /users/{userID}/conversations:
+  /api/v1/users/{userID}/conversations:
     get:
       operationId: getUserconversations
       summary: Retrieve all conversations for a specific user
@@ -168,17 +185,19 @@ components:
           items:
             $ref: "#/components/schemas/MessageObject"
       example:
-        created_at: 1702494381
-        role: assistant
-        content:
-          - type: text
-            text:
-              value: "Honeyed tea of course"
-              annotations:
-                - type: citation
-                  rank: 1
-                  text: "The brilliant cure-all, Honeyed tea"
-                  href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
+        id: 123e4567-e89b-12d3-a456-426614174000
+        messages:
+          - created_at: 1702494381
+            role: assistant
+            content:
+              - type: text
+                text:
+                  value: "Honeyed tea of course"
+                  annotations:
+                    - type: citation
+                      rank: 1
+                      text: "The brilliant cure-all, Honeyed tea"
+                      href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
 
     UserObject:
       type: object
