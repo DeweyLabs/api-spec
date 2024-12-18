@@ -18,34 +18,14 @@ prism mock openapi_spec.yml
 # Basic Request
 
 curl --request GET \
-  --url http://127.0.0.1:4010/api/v1/conversations/123e4567-e89b-12d3-a456-426614174000 \
+  --url http://127.0.0.1:4010/api/v0/questions/trending \
   --header 'Accept: application/json' \
-  --header 'Authorization: Bearer 123-sekret' 
+  --header 'X-Dewey-Key: pk_test_123abc' 
 
 ## Response
 {
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "messages": [
-    {
-      "created_at": 1702494381,
-      "role": "assistant",
-      "content": [
-        {
-          "type": "text",
-          "text": {
-            "value": "Honeyed tea of course",
-            "annotations": [
-              {
-                "type": "citation",
-                "rank": 1,
-                "text": "The brilliant cure-all, Honeyed tea",
-                "href": "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
-              }
-            ]
-          }
-        }
-      ]
-    }
+  "questions": [
+    "What is the best way to get rid of a cold?"
   ]
 }
 ```

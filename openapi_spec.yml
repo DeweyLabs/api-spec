@@ -121,6 +121,8 @@ paths:
                     type: array
                     items:
                       type: string
+                    example:
+                      - "What is the best way to get rid of a cold?"
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
