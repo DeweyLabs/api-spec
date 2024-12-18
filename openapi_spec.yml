@@ -1,22 +1,30 @@
 openapi: 3.1.0
 info:
-  description: Customer only API
+  description: |
+    Customer only API
+
+    ## Authentication
+    Talk to us to get an API key.
+
+    ## Versioning
+    This API is versioned through the URL path (/v0/). It is beta quality and undergoing rapid development.
+
+    ## Rate Limiting
+    Coming soon.
   title: Dewey API
   version: 0.0.1
   license:
     name: All Rights Reserved
     url: https://www.askdewey.co
 servers:
-  - url: "https://app.askdewey.co/api/v1"
+  - url: "https://app.askdewey.co/api/v0"
     description: Base API URL
 paths:
-  /api/v1/conversations:
+  /api/v0/conversations:
     post:
       operationId: createConversation
-      summary: Create a new conversation with messages
-      description: Create a new conversation with messages. The response messages object will only include the most recently created assisant message.
-      security:
-        - BearerAuth: []
+      summary: Initiate a conversation with a query and get an answer
+      description: Create a new conversation with an initial query. The response messages object will only include the most recently created Dewey response.
       requestBody:
         required: true
         content:
@@ -26,60 +34,34 @@ paths:
       responses:
         "201":
           description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ConversationObject"
-        "400":
-          description: Bad Request
-
-  /api/v1/conversations/{conversationID}:
-    get:
-      operationId: getConversation
-      summary: Retrieve a specific conversation by ID
-      description: Retrieve a specific conversation by ID. The response messages object will include all messages created for this conversation.
-      security:
-        - BearerAuth: []
-      parameters:
-        - in: path
-          name: conversationID
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: OK
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ConversationObject"
               examples:
-                example1:
-                  value:
-                    id: 123e4567-e89b-12d3-a456-426614174000
-                    messages:
-                      - created_at: 1702494381
-                        role: assistant
-                        content:
-                          - type: text
-                            text:
-                              value: "Honeyed tea of course"
-                              annotations:
-                                - type: citation
-                                  rank: 1
-                                  text: "The brilliant cure-all, Honeyed tea"
-                                  href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
+                successWithCitation:
+                  $ref: "#/components/examples/conversationWithCitation"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+              examples:
+                validationError:
+                  $ref: "#/components/examples/errorMessageExample"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimitExceeded"
+        "500":
+          $ref: "#/components/responses/InternalError"
 
-        "404":
-          description: Not Found
-
+  /api/v0/conversations/{conversationID}:
     post:
       operationId: addMessage
-      summary: Add message to an existing conversation
-      description: Add a message to an existing conversation. The response messages object will only include the most recently created assistant message.
-      security:
-        - BearerAuth: []
+      summary: Query an existing conversation
+      description: Add a query to an existing conversation. The response messages object will only include the most recently created Dewey response.
       parameters:
         - in: path
           name: conversationID
@@ -94,85 +76,117 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateConversationRequest"
       responses:
-        "201":
-          description: Created
+        "200":
+          description: Conversation updated
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ConversationObject"
         "400":
-          description: Bad Request
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notOwnConversation:
+                  summary: Attempted to access another organization's conversation
+                  value:
+                    error:
+                      type: "authorization_error"
+                      message: "You do not have permission to access this conversation"
+        "429":
+          $ref: "#/components/responses/RateLimitExceeded"
+        "500":
+          $ref: "#/components/responses/InternalError"
 
-  /api/v1/users/{userID}:
+  /api/v0/questions/trending:
     get:
-      operationId: getUser
-      summary: WIP Retrieve a user by ID
-      description: Retrieve a user by their existing ID
-      tags:
-        - WIP
-      security:
-        - BearerAuth: []
-      parameters:
-        - in: path
-          name: userID
-          required: true
-          schema:
-            type: integer
+      operationId: getTrendingQuestions
+      summary: Retrieve trending questions
+      description: Returns an ordered list of most frequently asked or relevant questions. Currently returns up to 6 questions.
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserObject"
-        "404":
-          description: Not Found
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimitExceeded"
+        "500":
+          $ref: "#/components/responses/InternalError"
 
-  /api/v1/users/{userID}/conversations:
-    get:
-      operationId: getUserconversations
-      summary: Retrieve all conversations for a specific user
-      description: Retrieve all conversations for a specific user
-      tags:
-        - WIP
-      security:
-        - BearerAuth: []
-      parameters:
-        - in: path
-          name: userID
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ConversationObject"
-        "404":
-          description: Not Found
-
+security:
+  - ClientKey: []
 components:
   securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
+    ClientKey:
+      type: apiKey
+      description: |
+        Client-side publishable key for authentication.
+        Requires valid Origin/Referer headers matching allowed domains configured for the key.
+        Keys are environment-specific, starting with either pk_live_ or pk_test_.
+      name: X-Dewey-Key
+      in: header
+      x-examples:
+        live: "pk_live_123abc"
+        test: "pk_test_123abc"
   schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - type
+            - message
+          properties:
+            type:
+              type: string
+              enum:
+                - authentication_error
+                - authorization_error
+                - validation_error
+                - rate_limit_error
+                - internal_error
+            message:
+              type: string
+              maxLength: 1000
+
+    ValidationErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+
     CreateConversationRequest:
       type: object
       required:
-        - messages
+        - query
       properties:
-        messages:
-          type: array
-          items:
-            $ref: "#/components/schemas/CreateMessageRequest"
+        query:
+          type: string
+          properties:
+            query:
+              type: string
+              minLength: 1
+              maxLength: 2000
       example:
-        messages:
-          - content: "What is the best way to get rid of a cold?"
+        query: "What is the best way to get rid of a cold?"
 
     ConversationObject:
       type: object
@@ -188,41 +202,14 @@ components:
         id: 123e4567-e89b-12d3-a456-426614174000
         messages:
           - created_at: 1702494381
-            role: assistant
+            rank: 1
             content:
-              - type: text
-                text:
-                  value: "Honeyed tea of course"
-                  annotations:
-                    - type: citation
-                      rank: 1
-                      text: "The brilliant cure-all, Honeyed tea"
-                      href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
-
-    UserObject:
-      type: object
-      properties:
-        id:
-          type: integer
-        email:
-          type: string
-        context:
-          type: object
-          additionalProperties: true
-
-    CreateMessageRequest:
-      type: object
-      properties:
-        content:
-          type: array
-          required:
-            - text
-          properties:
-            text:
-              type: object
-              properties:
-                value:
-                  type: string
+              value: "Honeyed tea of course"
+              annotations:
+                - type: citation
+                  rank: 1
+                  text: "The brilliant cure-all, Honeyed tea"
+                  href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
 
     MessageObject:
       type: object
@@ -232,127 +219,130 @@ components:
         conversation_id:
           type: string
           format: uuid
-        role:
-          type: string
+        rank:
+          type: integer
         content:
-          description: The content of the message in array of text with annotations
-          type: array
-          items:
-            $ref: "#/components/schemas/MessageContentTextObject"
-      example:
-        created_at: 1702494381
-        role: assistant
-        content:
-          - type: text
-            text:
-              value: "Honeyed tea of course"
-              annotations:
-                - type: citation
-                  rank: 1
-                  text: "The brilliant cure-all, Honeyed tea"
-                  href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
-
-    MessageContentTextObject:
-      type: object
-      properties:
-        type:
-          type: string
-          enum: ["text"]
-        text:
           type: object
+          required:
+            - value
+            - annotations
           properties:
             value:
               description: The text value of the message
               type: string
+              maxLength: 10000
             annotations:
               type: array
               items:
                 oneOf:
                   - $ref: "#/components/schemas/MessageContentTextAnnotationsCitationObject"
                   - $ref: "#/components/schemas/MessageContentTextAnnotationSuggestionObject"
-          required:
-            - value
-            - annotations
 
     MessageContentTextAnnotationsCitationObject:
       type: object
       description: A citation or reference for the message
+      required:
+        - type
+        - text
+        - href
       properties:
         type:
           type: string
           enum: ["citation"]
         rank:
           type: integer
+          minimum: 1
         text:
           type: string
+          maxLength: 500 # arbitrary to have a limit
         href:
           type: string
-      required:
-        - type
-        - text
-        - href
+          maxLength: 2000
+          pattern: "^https?://.*"
 
     MessageContentTextAnnotationSuggestionObject:
       type: object
       description: A suggestion source for the message
+      required:
+        - type
+        - text
+        - href
       properties:
         type:
           type: string
           enum: ["suggestion"]
         rank:
           type: integer
+          minimum: 1
         text:
           type: string
+          maxLength: 500 # arbitrary to have a limit
         href:
           type: string
-      required:
-        - type
-        - text
-        - href
+          maxLength: 2000
+          pattern: "^https?://.*"
 
-  # examples:
-  #   conversationResponseExample:
-  #     summary: Example conversation response
-  #     value:
-  #       id: 123e4567-e89b-12d3-a456-426614174000
-  #       messages:
-  #         - created_at: 1702494381
-  #           role: assistant
-  #           content:
-  #             - type: text
-  #               text:
-  #                 value: "Honeyed tea of course"
-  #                 annotations:
-  #                   - type: citation
-  #                     rank: 1
-  #                     text: "The brilliant cure-all, Honeyed tea"
-  #                     href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
+  responses:
+    ValidationError:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorResponse"
 
-  #   assistantAnswerMessageExample:
-  #     summary: Assistant answer message with citation
-  #     value:
-  #       created_at: 1702494381
-  #       role: assistant
-  #       content:
-  #         - type: text
-  #           text:
-  #             value: "Honeyed tea of course"
-  #             annotations:
-  #               - type: citation
-  #                 rank: 1
-  #                 text: "The brilliant cure-all, Honeyed tea"
-  #                 href: "https://www.expertdomain.com/health/cold-flu/honey-lemon-tea"
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
 
-  #   assistantSuggestionMessageExample:
-  #     summary: Assistant answer message with suggestion
-  #     value:
-  #       created_at: 1702494381
-  #       role: assistant
-  #       content:
-  #         - type: text
-  #           text:
-  #             value: "This is such an important question and I want to make sure you get the resources you need."
-  #             annotations:
-  #               - type: suggestion
-  #                 rank: 1
-  #                 text: "What are common over-the-counter treatments for cold symptoms?"
+    RateLimitExceeded:
+      description: Too Many Requests
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per window
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in window
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Window reset timestamp
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    InternalError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  examples:
+    conversationWithCitation:
+      summary: Conversation response with citation
+      value:
+        id: "123e4567-e89b-12d3-a456-426614174000"
+        messages:
+          - created_at: 1702494381
+            rank: 1
+            content:
+              value: "Based on recent research, regular exercise can help reduce cold symptoms and duration."
+              annotations:
+                - type: citation
+                  rank: 1
+                  text: "Effects of Exercise on Common Cold Symptoms"
+                  href: "https://example.com/research/cold-exercise"
+
+    errorMessageExample:
+      summary: Error response for invalid input
+      value:
+        error:
+          type: "validation_error"
+          message: "Invalid request parameters"
