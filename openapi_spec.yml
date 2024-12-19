@@ -38,18 +38,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ConversationObject"
-              examples:
-                successWithCitation:
-                  $ref: "#/components/examples/conversationWithCitation"
+              example:
+                id: "123e4567-e89b-12d3-a456-426614174000"
+                messages:
+                  - created_at: 1702494381
+                    rank: 1
+                    content:
+                      value: "Based on recent research, regular exercise can help reduce cold symptoms and duration."
+                      annotations:
+                        - type: citation
+                          rank: 1
+                          text: "Effects of Exercise on Common Cold Symptoms"
+                          href: "https://example.com/research/cold-exercise"
         "400":
           description: Bad Request
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ValidationErrorResponse"
-              examples:
-                validationError:
-                  $ref: "#/components/examples/errorMessageExample"
+              example:
+                error:
+                  type: "validation_error"
+                  message: "Invalid request parameters"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "429":
@@ -325,26 +335,3 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
-
-  examples:
-    conversationWithCitation:
-      summary: Conversation response with citation
-      value:
-        id: "123e4567-e89b-12d3-a456-426614174000"
-        messages:
-          - created_at: 1702494381
-            rank: 1
-            content:
-              value: "Based on recent research, regular exercise can help reduce cold symptoms and duration."
-              annotations:
-                - type: citation
-                  rank: 1
-                  text: "Effects of Exercise on Common Cold Symptoms"
-                  href: "https://example.com/research/cold-exercise"
-
-    errorMessageExample:
-      summary: Error response for invalid input
-      value:
-        error:
-          type: "validation_error"
-          message: "Invalid request parameters"
